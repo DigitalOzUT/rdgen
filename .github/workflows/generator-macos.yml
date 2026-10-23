@@ -171,7 +171,9 @@ jobs:
           
           # Update Xcode project settings
           sed -i '' -e 's/PRODUCT_NAME = "RustDesk"/PRODUCT_NAME = "${{ env.appname }}"/' ./flutter/macos/Runner.xcodeproj/project.pbxproj
-          sed -i '' -e 's/PRODUCT_BUNDLE_IDENTIFIER = ".*"/PRODUCT_BUNDLE_IDENTIFIER = "com.oztechnologies.oztech"/' ./flutter/macos/Runner.xcodeproj/project.pbxproj
+          # RustDesk's project.pbxproj has the id UNQUOTED (PRODUCT_BUNDLE_IDENTIFIER = com.carriez.rustdesk;) in all 3 build configs
+          sed -i '' -e 's/PRODUCT_BUNDLE_IDENTIFIER = com\.carriez\.rustdesk;/PRODUCT_BUNDLE_IDENTIFIER = com.oztechnologies.oztech;/g' ./flutter/macos/Runner.xcodeproj/project.pbxproj
+          if grep -q 'com\.carriez\.rustdesk;' ./flutter/macos/Runner.xcodeproj/project.pbxproj; then echo "bundle id not replaced in project.pbxproj"; exit 1; fi
 
           # Update CMake settings
           if [ -f "./flutter/macos/CMakeLists.txt" ]; then
