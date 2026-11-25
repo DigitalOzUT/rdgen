@@ -719,7 +719,7 @@ jobs:
           rcodesign encode-app-store-connect-api-key -o "$RUNNER_TEMP/asc-key.json" \
             "${{ secrets.APPLE_API_ISSUER }}" "${{ secrets.APPLE_API_KEY_ID }}" "$RUNNER_TEMP/AuthKey.p8"
           rm -f "$RUNNER_TEMP/AuthKey.p8"
-          rcodesign notary-submit --api-key-file "$RUNNER_TEMP/asc-key.json" --wait --staple "${{ env.appname }}.app"
+          rcodesign notary-submit --api-key-path "$RUNNER_TEMP/asc-key.json" --wait --staple "${{ env.appname }}.app"
           rcodesign verify "${{ env.appname }}.app"
 
       - name: Ad-hoc Sign macOS app bundle (Fallback)
@@ -785,7 +785,7 @@ jobs:
           echo "${{ secrets.MACOS_P12_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
           rcodesign sign --p12-file "$RUNNER_TEMP/certificate.p12" --p12-password "${{ secrets.MACOS_P12_PASSWORD }}" "$DMG"
           rm -f "$RUNNER_TEMP/certificate.p12"
-          rcodesign notary-submit --api-key-file "$RUNNER_TEMP/asc-key.json" --wait --staple "$DMG"
+          rcodesign notary-submit --api-key-path "$RUNNER_TEMP/asc-key.json" --wait --staple "$DMG"
           rm -f "$RUNNER_TEMP/asc-key.json"
 
       - name: Rename rustdesk
