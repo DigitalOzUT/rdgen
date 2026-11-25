@@ -58,7 +58,8 @@ jobs:
 
   build-for-macos:
     name: ${{ matrix.job.target }}
-    runs-on: ${{ matrix.job.os }}
+    # Oz: build on the self-hosted runner labelled rdgen-mac (the M1, m1-rdgen), not GitHub's queue
+    runs-on: [self-hosted, macOS, ARM64, rdgen-mac]
     needs: [generate-bridge, setup]
     strategy:
       fail-fast: false
@@ -79,7 +80,15 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
-        
+
+      - name: Self-hosted tool paths (Oz)
+        shell: bash
+        run: |
+          # no sudo on the runner: user-owned bin dir first on PATH; unversioned python from Homebrew
+          mkdir -p "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          if ! command -v python >/dev/null 2>&1; then echo "$(brew --prefix python)/libexec/bin" >> $GITHUB_PATH; fi
+
       - uses: actions/download-artifact@v8
         with:
           name: encrypted-secrets-zip
@@ -314,8 +323,8 @@ jobs:
           # aom and other multimedia libraries require NASM 2.x for x86/x86_64 assembly.
           wget https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/macosx/nasm-2.16.03-macosx.zip
           unzip nasm-2.16.03-macosx.zip
-          sudo cp nasm-2.16.03/nasm /usr/local/bin/nasm
-          nasm --version
+          cp nasm-2.16.03/nasm "$HOME/.local/bin/nasm"
+          "$HOME/.local/bin/nasm" --version
 
       - name: Install flutter
         uses: subosito/flutter-action@v2
@@ -598,7 +607,7 @@ jobs:
           pushd /tmp
           wget https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F0.22.0/apple-codesign-0.22.0-macos-universal.tar.gz
           tar -zxvf apple-codesign-0.22.0-macos-universal.tar.gz
-          mv apple-codesign-0.22.0-macos-universal/rcodesign /usr/local/bin
+          mv -f apple-codesign-0.22.0-macos-universal/rcodesign "$HOME/.local/bin/rcodesign"
           popd
 
       - name: Install build runtime
@@ -750,7 +759,7 @@ jobs:
 
       - name: Create DMG
         run: |
-          cd /Users/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/flutter/build/macos/Build/Products/Release
+          cd "$GITHUB_WORKSPACE/flutter/build/macos/Build/Products/Release"
           # Print directory contents for debugging
           echo "Directory contents:"
           ls -la
