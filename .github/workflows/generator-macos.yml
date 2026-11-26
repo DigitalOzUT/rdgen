@@ -752,8 +752,11 @@ jobs:
           rcodesign encode-app-store-connect-api-key -o "$RUNNER_TEMP/asc-key.json" \
             "$ISSUER" "$KEYID" "$RUNNER_TEMP/AuthKey.p8"
           rm -f "$RUNNER_TEMP/AuthKey.p8"
-          rcodesign notary-submit --api-key-path "$RUNNER_TEMP/asc-key.json" --wait --staple "${{ env.appname }}.app"
-          rcodesign verify "${{ env.appname }}.app"
+          # Oz: notarize with rcodesign, staple with Apple's stapler (rcodesign 0.22 --staple wrote the ticket, then failed: "Is a directory")
+          rcodesign notary-submit --api-key-path "$RUNNER_TEMP/asc-key.json" --wait "${{ env.appname }}.app"
+          xcrun stapler staple "${{ env.appname }}.app"
+          xcrun stapler validate "${{ env.appname }}.app"
+          spctl -a -vvv -t exec "${{ env.appname }}.app"
 
       - name: Ad-hoc Sign macOS app bundle (Fallback)
         if: env.MACOS_P12_BASE64 == '' || env.MACOS_P12_BASE64 == null
@@ -820,7 +823,9 @@ jobs:
           echo "${{ secrets.MACOS_P12_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
           rcodesign sign --p12-file "$RUNNER_TEMP/certificate.p12" --p12-password "${{ secrets.MACOS_P12_PASSWORD }}" "$DMG"
           rm -f "$RUNNER_TEMP/certificate.p12"
-          rcodesign notary-submit --api-key-path "$RUNNER_TEMP/asc-key.json" --wait --staple "$DMG"
+          rcodesign notary-submit --api-key-path "$RUNNER_TEMP/asc-key.json" --wait "$DMG"
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
           rm -f "$RUNNER_TEMP/asc-key.json"
 
       - name: Rename rustdesk
