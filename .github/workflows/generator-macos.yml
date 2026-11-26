@@ -87,7 +87,9 @@ jobs:
           # no sudo on the runner: user-owned bin dir first on PATH; unversioned python from Homebrew
           mkdir -p "$HOME/.local/bin"
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-          if ! command -v python >/dev/null 2>&1; then echo "$(brew --prefix python)/libexec/bin" >> $GITHUB_PATH; fi
+          # Homebrew python is externally managed (PEP 668): pip install refuses. Use a per-job venv instead.
+          "$(brew --prefix python)/libexec/bin/python" -m venv "$RUNNER_TEMP/oz-venv"
+          echo "$RUNNER_TEMP/oz-venv/bin" >> $GITHUB_PATH
 
       - uses: actions/download-artifact@v8
         with:
