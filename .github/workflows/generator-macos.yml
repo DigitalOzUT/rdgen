@@ -76,6 +76,8 @@ jobs:
             }
     env:
       STATUS_URL: "${{ secrets.GENURL }}/updategh"
+      # Oz: the M1's active developer dir is the Command Line Tools; Flutter needs full Xcode (job-scoped, machine unchanged)
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
 
     steps:
       - name: Checkout Repository
@@ -87,7 +89,9 @@ jobs:
           # no sudo on the runner: user-owned bin dir first on PATH; unversioned python from Homebrew
           mkdir -p "$HOME/.local/bin"
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-          if ! command -v python >/dev/null 2>&1; then echo "$(brew --prefix python)/libexec/bin" >> $GITHUB_PATH; fi
+          # Homebrew python is externally managed (PEP 668): pip install refuses. Use a per-job venv instead.
+          "$(brew --prefix python)/libexec/bin/python" -m venv "$RUNNER_TEMP/oz-venv"
+          echo "$RUNNER_TEMP/oz-venv/bin" >> $GITHUB_PATH
 
       - uses: actions/download-artifact@v8
         with:
@@ -773,7 +777,9 @@ jobs:
             exit 1
           fi
           echo "Creating DMG for ${{ env.appname }}.app"
+          # Oz: --skip-jenkins = no Finder AppleScript layout (needs an Automation prompt nobody answers on the night runner)
           create-dmg \
+            --skip-jenkins \
             --volname "${{ env.appname }}" \
             --window-pos 200 120 \
             --window-size 800 400 \
