@@ -688,6 +688,9 @@ jobs:
             ls -la "${{ env.appname }}.app" || echo "App not found"
             ls -la "${{ env.appname }}.app/Contents" || echo "Contents not found"
             
+            # Oz: Release.entitlements must not grant get-task-allow
+            if grep -q "get-task-allow" "$GITHUB_WORKSPACE/flutter/macos/Runner/Release.entitlements"; then echo "Release.entitlements has get-task-allow"; exit 1; fi
+
             # Decode the certificate
             echo "${{ secrets.MACOS_P12_BASE64 }}" | base64 --decode > certificate.p12
             
@@ -696,7 +699,9 @@ jobs:
               echo "Signing main executable..."
               MAIN_EXECUTABLE="${{ env.appname }}.app/Contents/MacOS/${{ env.appname }}"
               if [ -f "$MAIN_EXECUTABLE" ]; then
+                # Oz: explicit Release entitlements; the Xcode build's ad-hoc signature carries get-task-allow, which notarization rejects
                 rcodesign sign --p12-file certificate.p12 --p12-password "${{ secrets.MACOS_P12_PASSWORD }}" \
+                  --entitlements-xml-path "$GITHUB_WORKSPACE/flutter/macos/Runner/Release.entitlements" \
                   --code-signature-flags runtime "$MAIN_EXECUTABLE"
               else
                 echo "Main executable not found at expected path: $MAIN_EXECUTABLE"
@@ -707,6 +712,7 @@ jobs:
                 if [ -n "$ACTUAL_EXECUTABLE" ]; then
                   echo "Found executable: $ACTUAL_EXECUTABLE"
                   rcodesign sign --p12-file certificate.p12 --p12-password "${{ secrets.MACOS_P12_PASSWORD }}" \
+                    --entitlements-xml-path "$GITHUB_WORKSPACE/flutter/macos/Runner/Release.entitlements" \
                     --code-signature-flags runtime "${{ env.appname }}.app/Contents/MacOS/$ACTUAL_EXECUTABLE"
                 fi
               fi
@@ -718,6 +724,7 @@ jobs:
               
               echo "Signing main bundle..."
               rcodesign sign --p12-file certificate.p12 --p12-password "${{ secrets.MACOS_P12_PASSWORD }}" \
+                --entitlements-xml-path "Contents/MacOS/${{ env.appname }}:$GITHUB_WORKSPACE/flutter/macos/Runner/Release.entitlements" \
                 --code-signature-flags runtime "${{ env.appname }}.app"
             else
               echo "Error: Invalid app bundle structure"
